@@ -9,7 +9,6 @@
  "field_order": [
   "job_applicant",
   "applicant_name",
-  "applicant_email",
   "column_break_3",
   "status",
   "offer_date",
@@ -45,15 +44,6 @@
    "label": "Applicant Name",
    "read_only": 1,
    "reqd": 1
-  },
-  {
-   "fetch_from": "job_applicant.email_id",
-   "fieldname": "applicant_email",
-   "fieldtype": "Data",
-   "in_global_search": 1,
-   "label": "Applicant Email Address",
-   "options": "Email",
-   "read_only": 1
   },
   {
    "fieldname": "column_break_3",
@@ -161,7 +151,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2019-12-31 02:40:33.650728",
+ "modified": "2019-12-24 14:37:01.940443",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Job Offer",
@@ -169,7 +159,6 @@
  "permissions": [
   {
    "amend": 1,
-   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -180,7 +169,6 @@
    "report": 1,
    "role": "HR User",
    "share": 1,
-   "submit": 1,
    "write": 1
   }
  ],

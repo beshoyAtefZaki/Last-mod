@@ -12,15 +12,6 @@ from erpnext.accounts.utils import get_fiscal_year
 from erpnext.hr.doctype.employee.employee import get_holiday_list_for_employee
 
 class PayrollEntry(Document):
-	def onload(self):
-		if not self.docstatus==1 or self.salary_slips_submitted:
-    			return
-
-		# check if salary slips were manually submitted
-		entries = frappe.db.count("Salary Slip", {'payroll_entry': self.name, 'docstatus': 1}, ['name'])
-		if cint(entries) == len(self.employees):
-    			self.set_onload("submitted_ss", True)
-
 	def on_submit(self):
 		self.create_salary_slips()
 
@@ -29,17 +20,13 @@ class PayrollEntry(Document):
 			if self.validate_employee_attendance():
 				frappe.throw(_("Cannot Submit, Employees left to mark attendance"))
 
-	def on_cancel(self):
-		frappe.delete_doc("Salary Slip", frappe.db.sql_list("""select name from `tabSalary Slip`
-			where payroll_entry=%s """, (self.name)))
-
 	def get_emp_list(self):
 		"""
 			Returns list of active employees based on selected criteria
 			and for which salary structure exists
 		"""
 		cond = self.get_filter_condition()
-		cond += self.get_joining_relieving_condition()
+		cond += self.get_joining_releiving_condition()
 
 		condition = ''
 		if self.payroll_frequency:
@@ -60,14 +47,14 @@ class PayrollEntry(Document):
 			cond += "and %(from_date)s >= t2.from_date"
 			emp_list = frappe.db.sql("""
 				select
-					distinct t1.name as employee, t1.employee_name, t1.department, t1.designation
+					distinct t1.name as employee, t1.employee_name, t1.cost_center, t1.department, t1.designation
 				from
 					`tabEmployee` t1, `tabSalary Structure Assignment` t2
 				where
 					t1.name = t2.employee
 					and t2.docstatus = 1
 			%s order by t2.from_date desc
-			""" % cond, {"sal_struct": tuple(sal_struct), "from_date": self.end_date}, as_dict=True)
+			""" % cond, {"sal_struct": tuple(sal_struct), "from_date": self.end_date}, as_dict=True,debug=True)
 			return emp_list
 
 	def fill_employee_details(self):
@@ -87,13 +74,18 @@ class PayrollEntry(Document):
 		self.check_mandatory()
 
 		cond = ''
-		for f in ['company', 'branch', 'department', 'designation']:
+		for f in ['company', 'branch', 'department', 'designation','cost_center']:
 			if self.get(f):
-				cond += " and t1." + f + " = '" + self.get(f).replace("'", "\'") + "'"
+				# frappe.msgprint(str(self.get("").replace("'", "\'")))
+				if f=="cost_center":
+						if self.employees__cost_center:
+							cond += " and t1." + f + " = '" + self.get("employees__cost_center").replace("'", "\'") + "'"
+				else:
+					cond += " and t1." + f + " = '" + self.get(f).replace("'", "\'") + "'"
 
 		return cond
 
-	def get_joining_relieving_condition(self):
+	def get_joining_releiving_condition(self):
 		cond = """
 			and ifnull(t1.date_of_joining, '0000-00-00') <= '%(end_date)s'
 			and ifnull(t1.relieving_date, '2199-12-31') >= '%(start_date)s'
@@ -128,8 +120,6 @@ class PayrollEntry(Document):
 				frappe.enqueue(create_salary_slips_for_employees, timeout=600, employees=emp_list, args=args)
 			else:
 				create_salary_slips_for_employees(emp_list, args, publish_progress=False)
-				# since this method is called via frm.call this doc needs to be updated manually
-				self.reload()
 
 	def get_sal_slip_list(self, ss_status, as_dict=False):
 		"""
@@ -163,7 +153,7 @@ class PayrollEntry(Document):
 		"""
 		cond = self.get_filter_condition()
 		return frappe.db.sql(""" select eld.loan_account, eld.loan,
-				eld.interest_income_account, eld.principal_amount, eld.interest_amount, eld.total_payment,t1.employee
+				eld.interest_income_account, eld.principal_amount, eld.interest_amount, eld.total_payment
 			from
 				`tabSalary Slip` t1, `tabSalary Slip Loan` eld
 			where
@@ -246,7 +236,6 @@ class PayrollEntry(Document):
 				accounts.append({
 						"account": acc,
 						"debit_in_account_currency": flt(amount, precision),
-						"party_type": '',
 						"cost_center": self.cost_center,
 						"project": self.project
 					})
@@ -258,7 +247,6 @@ class PayrollEntry(Document):
 						"account": acc,
 						"credit_in_account_currency": flt(amount, precision),
 						"cost_center": self.cost_center,
-						"party_type": '',
 						"project": self.project
 					})
 
@@ -266,9 +254,7 @@ class PayrollEntry(Document):
 			for data in loan_details:
 				accounts.append({
 						"account": data.loan_account,
-						"credit_in_account_currency": data.principal_amount,
-						"party_type": "Employee",
-						"party": data.employee
+						"credit_in_account_currency": data.principal_amount
 					})
 
 				if data.interest_amount and not data.interest_income_account:
@@ -279,17 +265,14 @@ class PayrollEntry(Document):
 						"account": data.interest_income_account,
 						"credit_in_account_currency": data.interest_amount,
 						"cost_center": self.cost_center,
-						"project": self.project,
-						"party_type": "Employee",
-						"party": data.employee
+						"project": self.project
 					})
 				payable_amount -= flt(data.total_payment, precision)
 
 			# Payable amount
 			accounts.append({
 				"account": default_payroll_payable_account,
-				"credit_in_account_currency": flt(payable_amount, precision),
-				"party_type": '',
+				"credit_in_account_currency": flt(payable_amount, precision)
 			})
 
 			journal_entry.set("accounts", accounts)
@@ -348,7 +331,6 @@ class PayrollEntry(Document):
 		journal_entry.set("accounts", [
 			{
 				"account": self.payment_account,
-				"bank_account": self.bank_account,
 				"credit_in_account_currency": payment_amount
 			},
 			{
@@ -435,6 +417,7 @@ def get_start_end_dates(payroll_frequency, start_date=None, company=None):
 	return frappe._dict({
 		'start_date': start_date, 'end_date': end_date
 	})
+
 
 def get_frequency_kwargs(frequency_name):
 	frequency_dict = {
@@ -553,6 +536,7 @@ def submit_salary_slips_for_employees(payroll_entry, salary_slips, publish_progr
 		count += 1
 		if publish_progress:
 			frappe.publish_progress(count*100/len(salary_slips), title = _("Submitting Salary Slips..."))
+
 	if submitted_ss:
 		payroll_entry.make_accrual_jv_entry()
 		frappe.msgprint(_("Salary Slip submitted for period from {0} to {1}")

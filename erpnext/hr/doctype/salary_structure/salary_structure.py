@@ -4,11 +4,12 @@
 from __future__ import unicode_literals
 import frappe
 
-from frappe.utils import flt, cint, cstr
+from frappe.utils import flt, cint, cstr,getdate
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from frappe.model.document import Document
 from six import iteritems
+from erpnext.hr.utils import set_employee_name
 
 class SalaryStructure(Document):
 	def validate(self):
@@ -169,10 +170,5 @@ def make_salary_slip(source_name, target_doc = None, employee = None, as_print =
 @frappe.whitelist()
 def get_employees(salary_structure):
 	employees = frappe.get_list('Salary Structure Assignment',
-		filters={'salary_structure': salary_structure, 'docstatus': 1}, fields=['employee'])
-	
-	if not employees:
-		frappe.throw(_("There's no Employee with Salary Structure: {0}. \
-			Assign {1} to an Employee to preview Salary Slip").format(salary_structure, salary_structure))
-
+		filters={'salary_structure': salary_structure}, fields=['employee'])
 	return list(set([d.employee for d in employees]))
