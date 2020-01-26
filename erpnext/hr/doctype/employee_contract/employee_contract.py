@@ -13,12 +13,10 @@ import json
 
 class Employeecontract(Document):
 	def validate(self):
-		self.validate_dates()
+		pass
+		#self.validate_dates()
 	def validate_dates(self):
 		check = validate_contract_date(self.employee, self.contract_start_date)
-		earnings   = self.earnings
-		create_Liquidation(self.employee,earnings ,self.contract_start_date ,self.contratc_end_date,self.liquidation_type ,self.total_earnings ,self.employee_full_name, self.yearly_vacation)
-
 		if not check :
 			frappe.throw(("You can not add tow contract to this active employee contract."))
 	def on_submit(self):
@@ -36,32 +34,6 @@ class Employeecontract(Document):
 		'''%self.name)
 		frappe.db.commit()
 		frappe.msgprint("Cancelled")
-
-def create_Liquidation(employee ,earnings,start , end,type_l,total_earnings,full_name ,yearly_vacation):
-	habit = 0
-	basic = 0
-	doc = frappe.new_doc("Liquidation")
-	doc.employee = employee
-	doc.employee_name = full_name
-	doc.employee_start_date = start
-	doc.employee_end_contract_date=end
-	if type_l == "Full":
-		doc.employee_receivables =(float(total_earnings)/11)*(float(yearly_vacation)/30.0) * 11.00
-	for i in earnings :
-		if i.salary_component == "Basic":
-			basic +=  float(i.amount)
-		if i.salary_component == "Housing allowance":
-			habit += float(i.amount)
-		if i.salary_component == u"بدل سكن":
-			habit += float(i.amount)
-	if type_l == "Basic" :
-		doc.employee_receivables =(float(basic)/11)*(float(yearly_vacation)/30.0) * 11.00
-	if type_l == "Basic + Housing allowance" :
-		doc.employee_receivables =((float(basic)+float(habit))/11)*(float(yearly_vacation)/30.0) * 11.00
-	doc.insert()
-	doc.save()
-	frappe.db.commit()
-
 
 
 @frappe.whitelist()
@@ -133,7 +105,6 @@ def create_salary_structure(parent,item ,deductions,employee ,contract_start_dat
 	frappe.db.commit()
 	create_salary_structure_assignment(doc.name ,employee,contract_start_date)
 	return doc.name
-
 
 
 def create_salary_structure_assignment(salary_structure,employee ,contract_start_date):

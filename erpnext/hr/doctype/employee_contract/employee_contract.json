@@ -1,5 +1,4 @@
 {
- "actions": [],
  "autoname": "naming_series:",
  "creation": "2019-11-12 12:25:52.942050",
  "doctype": "DocType",
@@ -34,9 +33,7 @@
   "health_insurance",
   "health_insurance_grade",
   "yearly_vacation",
-  "liquidation_type",
   "contract_terms",
-  "liquidation",
   "amended_from"
  ],
  "fields": [
@@ -232,24 +229,10 @@
    "fieldname": "salary_data",
    "fieldtype": "Data",
    "label": "Salary Data"
-  },
-  {
-   "fieldname": "liquidation",
-   "fieldtype": "Link",
-   "label": "Liquidation",
-   "options": "Liquidation",
-   "read_only": 1
-  },
-  {
-   "fieldname": "liquidation_type",
-   "fieldtype": "Select",
-   "label": "Liquidation Type",
-   "options": "Full\nBasic\nBasic + Housing allowance"
   }
  ],
  "is_submittable": 1,
- "links": [],
- "modified": "2019-12-22 12:02:47.446907",
+ "modified": "2019-12-26 13:25:36.925880",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Employee contract",

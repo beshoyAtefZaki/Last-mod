@@ -2,7 +2,6 @@
 // License: GNU General Public License v3. See license.txt
 {% include "erpnext/public/js/controllers/accounts.js" %}
 
-cur_frm.add_fetch('employee', 'company', 'company');
 cur_frm.add_fetch('company', 'default_letter_head', 'letter_head');
 
 
@@ -28,14 +27,6 @@ frappe.ui.form.on('Salary Structure', {
 			return {
 				filters: {
 					type: "deduction"
-				}
-			}
-		});
-		frm.set_query("employee", "employees", function(doc) {
-			return {
-				query: "erpnext.controllers.queries.employee_query",
-				filters: {
-					company: doc.company
 				}
 			}
 		});
